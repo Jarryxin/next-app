@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const publicPaths = ["/api/auth/login", "/api/auth", "/auth", "/"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (publicPaths.some((p) => pathname === p || pathname.startsWith(p + "/"))) {

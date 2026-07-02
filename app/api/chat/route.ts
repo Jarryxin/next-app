@@ -28,8 +28,6 @@ export async function POST(req: NextRequest) {
       for await (const chunk of stream) {
         chunkCount++;
         const content = chunk.content;
-        const elapsed = Date.now() - startTime;
-        console.log(`[stream] chunk #${chunkCount} @ ${elapsed}ms — content: "${content?.toString().slice(0, 30)}..."`);
         if (content) {
           const text = typeof content === "string" ? content : String(content);
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: text })}\n\n`));
