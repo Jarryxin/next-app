@@ -1,4 +1,4 @@
-> **状态：规划中 / 部分实现**
+> **状态：AI Chat 已完成，RAG / 飞书 OAuth 待实现**
 <!-- BEGIN:project-rules -->
 # Project Overview
 
@@ -19,7 +19,7 @@
 - LLM: Agnes AI（免费，OpenAI 兼容接口）
 - Embedding: 智谱 AI GLM（免费不限量）
 - Vector DB: PostgreSQL + pgvector
-- 前端 Streaming: `@langchain/react`（useStream hook）
+- 前端 Streaming: 自定义 `useChat` hook（SSE + fetch），未使用 `@langchain/react`（需要 LangGraph Platform Server）
 - 飞书OAuth
 
 ---
@@ -33,8 +33,14 @@ app/
     chat/       ← AI 对话 API Route
     auth/       ← 飞书 OAuth 回调
     upload/     ← 用户上传文档 (Phase 2)
-  (auth)/       ← 登录页面
+  auth/         ← 登录页面
   chat/         ← 对话页面 (CSR)
+lib/
+  db.ts         ← Prisma 7 客户端（adapter-pg）
+  auth.ts       ← Session 创建/验证/清理
+  llm.ts        ← ChatOpenAI（Agnes AI）
+  agent.ts      ← LangGraph Agent
+  use-chat.ts   ← 自定义 SSE 流式 Chat Hook
 knowledge/      ← Markdown 知识库目录
 
 ### Routing
@@ -104,7 +110,7 @@ Prisma migrate + 种子数据脚本
 
 ### Agent Flow
 - **框架:** LangGraph
-- **前端 Streaming:** `@langchain/react` `useStream` hook
+- **前端 Streaming:** 自定义 `useChat` hook（SSE + fetch），未使用 `@langchain/react`（需要 LangGraph Platform Server）
 - **对话 UI:** Tailwind 手写，不依赖额外 UI 库
 
 ### 飞书 OAuth
@@ -142,4 +148,54 @@ Prisma migrate + 种子数据脚本
 <!-- 记录常见问题、踩坑经验、以及本项目的特殊行为 -->
 <!-- 如：CI 环境变量、奇怪的构建报错、需要手动执行的步骤等 -->
 
+### Prisma 7 迁移注意事项
+- `datasource` 块中**不能**写 `url`，连接串通过 `prisma.config.ts` 提供
+- 客户端初始化需用 `PrismaPg` adapter：`new PrismaClient({ adapter: new PrismaPg(DATABASE_URL) })`
+- 运行时 PrismaClient 初始化失败 → 检查 `PrismaClientOptions` 错误，确认 adapter 正确传入
+
+### Middleware (Edge Runtime) 限制
+- Edge Runtime **不支持** Prisma Client（需 Node.js）
+- Middleware 只做 cookie 存在性检查，DB 验证延迟到 API Route 中处理
+
+### 前端 Streaming 方案选择
+- `@langchain/react` 的 `useStream` 需要 LangGraph Platform Server，不能直接对接自定义 API Route
+- 自定义 SSE 方案：`fetch` + `response.body.getReader()` + `ReadableStream`
+- **为什么不直接用 EventSource**：EventSource 只支持 GET，而 Chat API 需 POST 传消息体
+- RAF（requestAnimationFrame）节流比 `flushSync` 更顺滑：密集 chunk 在单帧内批量渲染
+
+### React 流式渲染优化
+- 流式更新时 `flushSync` 强制同步渲染会导致卡顿，改用 RAF 每帧更新一次
+- `React.memo` 包裹 Markdown 组件，避免旧消息重复解析 markdown AST
+- `isLoading` 作为 prop 传给所有子组件会导致所有气泡重渲染；改为只在最后一条消息传 `showCursor`
+
+### LangGraph / LLM 流式注意事项
+- `llm.stream()` 返回的 chunk 中 `content` 可能为空字符串（元数据事件），需用 `if (content)` 过滤
+- 流式效果取决于 LLM 提供商的 TTFT（首 token 延迟），不是前端能优化的
+- Agnes AI 首 token 延迟约 1-3 秒，后续生成较快
+
+### 路由组陷阱
+- `(auth)/` 路由组与 `app/page.tsx` 都映射到 `/` 路径，导致 (auth) 页面不可达
+- 解决方法：不要用路由组，直接用 `auth/` 目录
+
 <!-- END:project-rules -->
+<!-- TRELLIS:START -->
+# Trellis Instructions
+
+These instructions are for AI assistants working in this project.
+
+This project is managed by Trellis. The working knowledge you need lives under `.trellis/`:
+
+- `.trellis/workflow.md` — development phases, when to create tasks, skill routing
+- `.trellis/spec/` — package- and layer-scoped coding guidelines (read before writing code in a given layer)
+- `.trellis/workspace/` — per-developer journals and session traces
+- `.trellis/tasks/` — active and archived tasks (PRDs, research, jsonl context)
+
+If a Trellis command is available on your platform (e.g. `/trellis:finish-work`, `/trellis:continue`), prefer it over manual steps. Not every platform exposes every command.
+
+If you're using Codex or another agent-capable tool, additional project-scoped helpers may live in:
+- `.agents/skills/` — reusable Trellis skills
+- `.codex/agents/` — optional custom subagents
+
+Managed by Trellis. Edits outside this block are preserved; edits inside may be overwritten by a future `trellis update`.
+
+<!-- TRELLIS:END -->
