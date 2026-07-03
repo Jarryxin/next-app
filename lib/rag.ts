@@ -99,7 +99,8 @@ export async function indexKnowledgeDir(): Promise<
 
 export async function searchSimilar(
   query: string,
-  k = 5
+  k = 5,
+  minSimilarity = 0.45
 ): Promise<SearchResult[]> {
   const [queryVector] = await embeddings.embedDocuments([query]);
   const vectorStr = `[${queryVector.join(",")}]`;
@@ -109,10 +110,12 @@ export async function searchSimilar(
       `SELECT content, source, 1 - (embedding <=> $1::vector) AS similarity
        FROM "document_chunks"
        WHERE embedding IS NOT NULL
+         AND 1 - (embedding <=> $1::vector) >= $3
        ORDER BY embedding <=> $1::vector
        LIMIT $2`,
       vectorStr,
-      k
+      k,
+      minSimilarity
     );
 
   return rows.map((r) => ({

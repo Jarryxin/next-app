@@ -189,6 +189,13 @@ Prisma migrate + 种子数据脚本
 - 流式效果取决于 LLM 提供商的 TTFT（首 token 延迟），不是前端能优化的
 - Agnes AI 首 token 延迟约 1-3 秒，后续生成较快
 
+### 飞书 OAuth
+- **Web 授权**（弹窗跳转）可在本地开发环境正常工作
+- **扫码登录**需要公网可访问的 redirect_uri（localhost 手机无法访问），开发时可用 ngrok 隧道或直接部署后测试
+- 使用标准飞书 OAuth v2.0 接口：`authen/v1/access_token`（非 OIDC），`app_id` + `app_secret` 直接鉴权
+- 回调 `redirect_uri` 需在飞书开发者后台安全设置中精确配置
+- 用户通过 `feishuUid`（open_id）唯一标识，再次登录时更新用户信息
+
 ### 路由组陷阱
 - `(auth)/` 路由组与 `app/page.tsx` 都映射到 `/` 路径，导致 (auth) 页面不可达
 - 解决方法：不要用路由组，直接用 `auth/` 目录
