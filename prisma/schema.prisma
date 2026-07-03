@@ -32,3 +32,30 @@ model Session {
 
   @@map("sessions")
 }
+
+model KnowledgeDoc {
+  id         String   @id @default(cuid())
+  path       String   @unique
+  checksum   String
+  chunkCount Int      @map("chunk_count")
+  indexedAt  DateTime @default(now()) @map("indexed_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  chunks DocumentChunk[]
+
+  @@map("knowledge_docs")
+}
+
+model DocumentChunk {
+  id        String   @id @default(cuid())
+  content   String
+  metadata  Json     @default("{}")
+  source    String
+  docId     String   @map("doc_id")
+  embedding Unsupported("vector(384)")?
+
+  doc KnowledgeDoc @relation(fields: [docId], references: [id], onDelete: Cascade)
+
+  @@map("document_chunks")
+  @@index([docId], name: "idx_chunks_doc_id")
+}

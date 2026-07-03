@@ -16,12 +16,12 @@
 | Agent Framework | LangGraph |
 | Document Loading | `@langchain/community/document_loaders/fs/markdown` |
 | Chunking | MarkdownHeaderSplitter → RecursiveCharacterSplitter |
-| Frontend Streaming | `@langchain/react` `useStream` |
+| Frontend Streaming | 自定义 `useChat` hook（SSE + fetch） |
 
 ## Pre-Development Checklist
 
 - [ ] LLM provider env vars set (baseURL, API key, model name)
-- [ ] Embedding model env vars set (智谱 AI key)
+- [ ] Embedding model: Ollama running with `ollama serve` + `all-minilm` model pulled
 - [ ] pgvector extension enabled in PostgreSQL
 - [ ] `knowledge/` directory has valid Markdown files
 - [ ] Chunking params aligned (chunk_size=1000, overlap=200)

@@ -1,4 +1,4 @@
-> **状态：AI Chat 已完成，RAG / 飞书 OAuth 待实现**
+> **状态：AI Chat ✓ RAG ✓  飞书 OAuth 待实现**
 <!-- BEGIN:project-rules -->
 # Project Overview
 
@@ -140,6 +140,7 @@ Prisma migrate + 种子数据脚本
 | `npm run test -- -u` | Update snapshots |
 | `npm run db:migrate` | Run database migrations |
 | `npm run db:seed` | Seed database |
+| `npx tsx scripts/index-knowledge.ts` | Index knowledge directory (need Ollama running) |
 
 ---
 
@@ -167,6 +168,20 @@ Prisma migrate + 种子数据脚本
 - 流式更新时 `flushSync` 强制同步渲染会导致卡顿，改用 RAF 每帧更新一次
 - `React.memo` 包裹 Markdown 组件，避免旧消息重复解析 markdown AST
 - `isLoading` 作为 prop 传给所有子组件会导致所有气泡重渲染；改为只在最后一条消息传 `showCursor`
+
+### RAG Embedding 方案演变
+- **最初**：智谱 AI GLM（`@langchain/community/embeddings/zhipu`）→ 余额不足
+- **尝试**：`HuggingFaceTransformersEmbeddings`（本地 ONNX）→ `onnxruntime-node` 缺少对应 arch 的二进制
+- **尝试**：`HuggingFaceInferenceEmbeddings`（HF Inference API）→ 网络不通（GFW）
+- **最终**：Ollama 本地 `all-minilm` 模型（384d），通过 `OpenAIEmbeddings` 以 OpenAI 兼容格式连接
+- 所以需要启动 Ollama 后再运行 index 脚本：`ollama serve` + `npx tsx scripts/index-knowledge.ts`
+
+### RAG pgvector 注意事项
+- pgvector 的 `ivfflat` 索引默认 `probes=1`，数据量小时可能返回 0 个结果
+- 小知识库直接不用 ivfflat 索引，用精确搜索即可
+- Embedding 存储使用 `Unsupported("vector(384)")` Prisma 类型，所有向量操作通过 raw SQL 进行
+- 向量通过 `prisma.$queryRawUnsafe` 的 `$1::vector` 参数绑定传递（字符串格式：`[-0.075,0.009,...]`）
+- 索引脚本需要 `dotenv/config` 加载环境变量
 
 ### LangGraph / LLM 流式注意事项
 - `llm.stream()` 返回的 chunk 中 `content` 可能为空字符串（元数据事件），需用 `if (content)` 过滤
