@@ -173,8 +173,9 @@ Prisma migrate + 种子数据脚本
 - **最初**：智谱 AI GLM（`@langchain/community/embeddings/zhipu`）→ 余额不足
 - **尝试**：`HuggingFaceTransformersEmbeddings`（本地 ONNX）→ `onnxruntime-node` 缺少对应 arch 的二进制
 - **尝试**：`HuggingFaceInferenceEmbeddings`（HF Inference API）→ 网络不通（GFW）
-- **最终**：Ollama 本地 `all-minilm` 模型（384d），通过 `OpenAIEmbeddings` 以 OpenAI 兼容格式连接
-- 所以需要启动 Ollama 后再运行 index 脚本：`ollama serve` + `npx tsx scripts/index-knowledge.ts`
+- **最终（当前）**：Ollama 本地 `bge-m3` 模型（1024d），通过 `OpenAIEmbeddings` 以 OpenAI 兼容格式连接。支持中文，上下文窗口 8192 token
+- **之前尝试**：`all-minilm`（384d）英文模型，中文检索效果差（相似度 < 50%），已替换
+- 需要启动 Ollama 后再运行 index 脚本：`ollama serve` + `npx tsx scripts/index-knowledge.ts`
 
 ### RAG pgvector 注意事项
 - pgvector 的 `ivfflat` 索引默认 `probes=1`，数据量小时可能返回 0 个结果

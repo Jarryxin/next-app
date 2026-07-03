@@ -2,9 +2,16 @@
 
 import { useState, useRef, useCallback } from "react";
 
+interface SourceResult {
+  content: string;
+  source: string;
+  similarity: number;
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
+  sources?: SourceResult[];
 }
 
 export function useChat(api: string) {
@@ -21,7 +28,7 @@ export function useChat(api: string) {
       const text = contentRef.current;
       setMessages((prev) => {
         const updated = [...prev];
-        updated[updated.length - 1] = { role: "assistant", content: text };
+        updated[updated.length - 1] = { ...updated[updated.length - 1], content: text };
         return updated;
       });
     });
@@ -81,6 +88,17 @@ export function useChat(api: string) {
 
             try {
               const parsed = JSON.parse(data);
+              if (parsed.type === "sources") {
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  const last = updated[updated.length - 1];
+                  if (last?.role === "assistant") {
+                    updated[updated.length - 1] = { ...last, sources: parsed.sources };
+                  }
+                  return updated;
+                });
+                continue;
+              }
               if (parsed.content) {
                 contentRef.current += parsed.content;
                 scheduleRender();
@@ -100,7 +118,7 @@ export function useChat(api: string) {
         cancelAnimationFrame(rafRef.current);
         setMessages((prev) => {
           const updated = [...prev];
-          updated[updated.length - 1] = { role: "assistant", content: contentRef.current };
+          updated[updated.length - 1] = { ...updated[updated.length - 1], content: contentRef.current };
           return updated;
         });
         setIsLoading(false);

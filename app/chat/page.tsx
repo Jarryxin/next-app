@@ -1,9 +1,15 @@
 "use client";
 
 import { useChat } from "@/lib/use-chat";
-import { useEffect, useRef, memo } from "react";
+import { useEffect, useRef, useState, memo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+
+interface SourceResult {
+  content: string;
+  source: string;
+  similarity: number;
+}
 
 const MarkdownContent = memo(function MarkdownContent({ content }: { content: string }) {
   return (
@@ -58,11 +64,38 @@ const MarkdownContent = memo(function MarkdownContent({ content }: { content: st
   );
 });
 
+function SourcesBlock({ sources }: { sources: SourceResult[] }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="mt-2 border-t border-zinc-300/50 pt-1 dark:border-zinc-700/50">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+      >
+        <span>{expanded ? "▼" : "▶"}</span>
+        <span>知识库来源 ({sources.length})</span>
+      </button>
+      {expanded && (
+        <div className="mt-1 space-y-1">
+          {sources.map((s, i) => (
+            <div key={i} className="rounded bg-zinc-100 p-2 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+              <div className="mb-0.5 font-medium text-zinc-500 dark:text-zinc-500">
+                {s.source} · 相似度 {(s.similarity * 100).toFixed(0)}%
+              </div>
+              <div className="line-clamp-3">{s.content}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const MessageBubble = memo(function MessageBubble({
   msg,
   showCursor,
 }: {
-  msg: { role: string; content: string };
+  msg: { role: string; content: string; sources?: SourceResult[] };
   showCursor: boolean;
 }) {
   return (
@@ -77,11 +110,16 @@ const MessageBubble = memo(function MessageBubble({
         }`}
       >
         {msg.role === "assistant" ? (
-          msg.content ? (
-            <MarkdownContent content={msg.content} />
-          )           : showCursor ? (
-            <span className="animate-pulse">...</span>
-          ) : null
+          <>
+            {msg.content ? (
+              <MarkdownContent content={msg.content} />
+            ) : showCursor ? (
+              <span className="animate-pulse">...</span>
+            ) : null}
+            {msg.sources && msg.sources.length > 0 && (
+              <SourcesBlock sources={msg.sources} />
+            )}
+          </>
         ) : (
           <p>{msg.content}</p>
         )}
