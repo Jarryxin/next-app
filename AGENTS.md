@@ -1,4 +1,4 @@
-> **状态：AI Chat ✓ RAG ✓  飞书 OAuth 待实现**
+> **状态：AI Chat ✓ RAG ✓ 飞书 OAuth Phase 1 ✓**
 <!-- BEGIN:project-rules -->
 # Project Overview
 
@@ -104,8 +104,20 @@ Prisma migrate + 种子数据脚本
 - **Chunking:** MarkdownHeaderSplitter（按 `#` `##` 切）→ RecursiveCharacterSplitter（chunk_size=1000, overlap=200）
 - **知识库目录:** `/knowledge/`（项目内，git 管理）
 
+### 图片手写笔记转录
+- **脚本:** `scripts/transcribe-images.ts`
+- **方式:** 读取 `knowledge/interview/` 下的 `.jpg`/`.png`，通过 Agnes AI 视觉 API 转录手写文字，生成 `.md` 文件
+- **流程:** `transcribe-images` → 图片按内容重命名 + 生成 `.md` → `index-knowledge` 索引到 pgvector
+- **注意:** 需要 Agnes AI API 正常运行（视觉模式），图片会以 base64 形式发送
+
+### 笔记自动分类归档
+- **脚本:** `scripts/classify-notes.ts`
+- **方式:** 读取 `knowledge/interview/` 下的 `.md`，通过 Agnes AI 判断内容类别，自动将 `.md` + `.jpg` 移动到 `knowledge/<类别>/` 子目录
+- **流程:** `transcribe-images` → `classify-notes` → `index-knowledge`
+- **注意:** `indexKnowledgeDir()` 已支持递归扫描子目录，分类后文件会被正常索引
+
 ### RAG 模式（分阶段）
-1. **Phase 1:** 预置知识库（Markdown 文件手动放入 `/knowledge/`）
+1. **Phase 1:** 预置知识库（Markdown 文件手动放入 `/knowledge/`，图片放入 `knowledge/interview/`）
 2. **Phase 2:** 用户上传文档（API + 异步索引）
 
 ### Agent Flow
@@ -141,6 +153,8 @@ Prisma migrate + 种子数据脚本
 | `npm run db:migrate` | Run database migrations |
 | `npm run db:seed` | Seed database |
 | `npx tsx scripts/index-knowledge.ts` | Index knowledge directory (need Ollama running) |
+| `npx tsx scripts/transcribe-images.ts` | Transcribe handwritten note images to Markdown (need Agnes AI) |
+| `npx tsx scripts/classify-notes.ts` | Classify and archive notes into category subdirectories (need Agnes AI) |
 
 ---
 

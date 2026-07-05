@@ -18,6 +18,14 @@
 | Chunking | MarkdownHeaderSplitter → RecursiveCharacterSplitter |
 | Frontend Streaming | 自定义 `useChat` hook（SSE + fetch） |
 
+### Image Transcription & Classification
+
+- `scripts/transcribe-images.ts` converts handwritten note images to Markdown via Agnes AI vision API
+  - Images (`.jpg`/`.png`) go in `knowledge/interview/`
+  - Script renames images by content and generates `.md` files with frontmatter metadata
+- `scripts/classify-notes.ts` classifies `.md` files by content and moves them to `knowledge/<category>/` subdirectories
+- `indexKnowledgeDir()` now recursively scans all subdirectories under `knowledge/`
+
 ## Pre-Development Checklist
 
 - [ ] LLM provider env vars set (baseURL, API key, model name)

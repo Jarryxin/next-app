@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { join, relative } from "node:path";
 import { prisma } from "./db";
 import { embeddings } from "./embeddings";
 import { splitMarkdown } from "./splitter";
@@ -77,20 +78,32 @@ export async function indexFile(
   return { path: filePath, chunks: texts.length, skipped: false };
 }
 
+function findMdFiles(dir: string): string[] {
+  const entries = readdirSync(dir, { withFileTypes: true });
+  const files: string[] = [];
+  for (const entry of entries) {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...findMdFiles(fullPath));
+    } else if (entry.name.endsWith(".md")) {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
+
 export async function indexKnowledgeDir(): Promise<
   { path: string; chunks: number; skipped: boolean }[]
 > {
-  const { readdirSync } = await import("node:fs");
-  const { join } = await import("node:path");
-
   const knowledgeDir = join(process.cwd(), "knowledge");
-  const files = readdirSync(knowledgeDir).filter((f) => f.endsWith(".md"));
+  const allFiles = findMdFiles(knowledgeDir);
 
   const results: { path: string; chunks: number; skipped: boolean }[] = [];
 
-  for (const file of files) {
-    const content = readFileSync(join(knowledgeDir, file), "utf-8");
-    const result = await indexFile(file, content);
+  for (const fullPath of allFiles) {
+    const relativePath = relative(knowledgeDir, fullPath);
+    const content = readFileSync(fullPath, "utf-8");
+    const result = await indexFile(relativePath, content);
     results.push(result);
   }
 
