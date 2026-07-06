@@ -155,6 +155,7 @@ Prisma migrate + 种子数据脚本
 | `npx tsx scripts/index-knowledge.ts` | Index knowledge directory (need Ollama running) |
 | `npx tsx scripts/transcribe-images.ts` | Transcribe handwritten note images to Markdown (need Agnes AI) |
 | `npx tsx scripts/classify-notes.ts` | Classify and archive notes into category subdirectories (need Agnes AI) |
+| `npm run dev` → `/upload` | Web UI: upload → LLM classify → edit → index to RAG |
 
 ---
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useChat } from "@/lib/use-chat";
-import { useEffect, useRef, useState, memo } from "react";
+import { useWSChat } from "@/lib/use-ws-chat";
+import { useEffect, useRef, useState, memo, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -9,6 +9,14 @@ interface SourceResult {
   content: string;
   source: string;
   similarity: number;
+}
+
+interface ConversationSummary {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  _count: { messages: number };
 }
 
 const MarkdownContent = memo(function MarkdownContent({ content }: { content: string }) {
@@ -129,11 +137,38 @@ const MessageBubble = memo(function MessageBubble({
 });
 
 export default function ChatPage() {
-  const { messages, input, setInput, handleSubmit, isLoading, stop } =
-    useChat("/api/chat");
+  const { messages, input, setInput, handleSubmit, isLoading, stop, conversationId, loadConversation, connectionStatus, connect, disconnect } =
+    useWSChat();
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const userScrolledUp = useRef(false);
+
+  const fetchConversations = useCallback(async () => {
+    try {
+      const res = await fetch("/api/conversations");
+      if (res.ok) {
+        setConversations(await res.json());
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    connect();
+    return () => disconnect();
+  }, [connect, disconnect]);
+
+  useEffect(() => {
+    if (connectionStatus === "connected") {
+      fetchConversations();
+    }
+  }, [connectionStatus, fetchConversations]);
+
+  useEffect(() => {
+    if (conversationId) {
+      fetchConversations();
+    }
+  }, [conversationId, fetchConversations]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -159,58 +194,124 @@ export default function ChatPage() {
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
+  const handleConversationClick = useCallback(async (convId: string) => {
+    await loadConversation(convId);
+  }, [loadConversation]);
+
+  const handleNewChat = useCallback(() => {
+    loadConversation("");
+  }, [loadConversation]);
+
   return (
-    <div className="mx-auto flex h-screen max-w-3xl flex-col bg-zinc-50 dark:bg-black">
-      <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-        <h1 className="text-lg font-semibold">AI Chat</h1>
-      </header>
+    <div className="mx-auto flex h-screen max-w-5xl bg-zinc-50 dark:bg-black">
+      <aside className="flex w-64 flex-col border-r border-zinc-200 dark:border-zinc-800">
+        <div className="border-b border-zinc-200 p-3 dark:border-zinc-800">
+          <button
+            onClick={handleNewChat}
+            className="w-full rounded-lg bg-blue-600 px-3 py-2 text-sm text-white transition hover:bg-blue-700"
+          >
+            + 新对话
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-2">
+          {conversations.map((conv) => (
+            <button
+              key={conv.id}
+              onClick={() => handleConversationClick(conv.id)}
+              className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
+                conv.id === conversationId
+                  ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200"
+                  : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              }`}
+            >
+              <div className="truncate font-medium">{conv.title}</div>
+              <div className="text-xs text-zinc-400">
+                {conv._count.messages} 条消息
+              </div>
+            </button>
+          ))}
+          {conversations.length === 0 && (
+            <p className="p-3 text-center text-xs text-zinc-400">暂无对话</p>
+          )}
+        </div>
+      </aside>
 
-      <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-4">
-        {messages.length === 0 && (
-          <div className="flex h-full items-center justify-center text-zinc-400">
-            发送一条消息开始对话
-          </div>
-        )}
-        {messages.map((msg, i) => (
-          <MessageBubble
-            key={i}
-            msg={msg}
-            showCursor={isLoading && i === messages.length - 1 && msg.role === "assistant" && !msg.content}
+      <div className="flex flex-1 flex-col">
+        <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+          <h1 className="text-lg font-semibold">AI Chat</h1>
+          <span
+            className={`inline-flex items-center gap-1 text-xs ${
+              connectionStatus === "connected"
+                ? "text-green-500"
+                : connectionStatus === "reconnecting"
+                ? "text-yellow-500"
+                : "text-red-500"
+            }`}
+          >
+            <span
+              className={`inline-block h-2 w-2 rounded-full ${
+                connectionStatus === "connected"
+                  ? "bg-green-500"
+                  : connectionStatus === "reconnecting"
+                  ? "bg-yellow-500"
+                  : "bg-red-500"
+              }`}
+            />
+            {connectionStatus === "connected"
+              ? "已连接"
+              : connectionStatus === "reconnecting"
+              ? "重连中"
+              : "未连接"}
+          </span>
+        </header>
+
+        <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-4">
+          {messages.length === 0 && (
+            <div className="flex h-full items-center justify-center text-zinc-400">
+              选择或创建一个对话
+            </div>
+          )}
+          {messages.map((msg, i) => (
+            <MessageBubble
+              key={i}
+              msg={msg}
+              showCursor={isLoading && i === messages.length - 1 && msg.role === "assistant" && !msg.content}
+            />
+          ))}
+          <div ref={bottomRef} />
+        </div>
+
+        <form
+          onSubmit={handleSubmit}
+          className="flex items-center gap-2 border-t border-zinc-200 px-4 py-3 dark:border-zinc-800"
+        >
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="输入消息..."
+            disabled={isLoading}
+            className="flex-1 rounded-lg border border-zinc-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800"
           />
-        ))}
-        <div ref={bottomRef} />
+          {isLoading ? (
+            <button
+              type="button"
+              onClick={stop}
+              className="rounded-lg bg-red-500 px-4 py-2 text-sm text-white transition hover:bg-red-600"
+            >
+              停止
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={!input.trim()}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700 disabled:opacity-50"
+            >
+              发送
+            </button>
+          )}
+        </form>
       </div>
-
-      <form
-        onSubmit={handleSubmit}
-        className="flex items-center gap-2 border-t border-zinc-200 px-4 py-3 dark:border-zinc-800"
-      >
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="输入消息..."
-          disabled={isLoading}
-          className="flex-1 rounded-lg border border-zinc-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800"
-        />
-        {isLoading ? (
-          <button
-            type="button"
-            onClick={stop}
-            className="rounded-lg bg-red-500 px-4 py-2 text-sm text-white transition hover:bg-red-600"
-          >
-            停止
-          </button>
-        ) : (
-          <button
-            type="submit"
-            disabled={!input.trim()}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700 disabled:opacity-50"
-          >
-            发送
-          </button>
-        )}
-      </form>
     </div>
   );
 }

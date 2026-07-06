@@ -26,6 +26,12 @@
 - `scripts/classify-notes.ts` classifies `.md` files by content and moves them to `knowledge/<category>/` subdirectories
 - `indexKnowledgeDir()` now recursively scans all subdirectories under `knowledge/`
 
+### Upload Workflow (Web UI)
+
+- `/upload` page: drag-and-drop files (`.jpg`/`.png`/`.md`) → upload to server → LLM classify → edit categories → confirm → RAG index
+- Step-by-step flow, each step user-controlled
+- API routes: `POST /api/upload`, `POST /api/classify`, `POST /api/index`
+
 ## Pre-Development Checklist
 
 - [ ] LLM provider env vars set (baseURL, API key, model name)

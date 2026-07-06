@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 interface SourceResult {
   content: string;
@@ -18,9 +18,11 @@ export function useChat(api: string) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const contentRef = useRef("");
   const rafRef = useRef(0);
+  const conversationIdRef = useRef<string | null>(null);
 
   const scheduleRender = useCallback(() => {
     cancelAnimationFrame(rafRef.current);
@@ -32,6 +34,23 @@ export function useChat(api: string) {
         return updated;
       });
     });
+  }, []);
+
+  const loadConversation = useCallback(async (convId: string) => {
+    setConversationId(convId || null);
+    conversationIdRef.current = convId || null;
+    setMessages([]);
+    if (!convId) return;
+    const res = await fetch(`/api/conversations/${convId}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    setMessages(
+      data.messages.map((m: { role: string; content: string; sources?: SourceResult[] }) => ({
+        role: m.role,
+        content: m.content,
+        sources: m.sources,
+      }))
+    );
   }, []);
 
   const handleSubmit = useCallback(
@@ -56,12 +75,19 @@ export function useChat(api: string) {
               role: m.role,
               content: m.content,
             })),
+            conversationId: conversationIdRef.current,
           }),
           signal: controller.signal,
         });
 
         if (!res.ok) {
           throw new Error(res.status === 401 ? "未登录" : "请求失败");
+        }
+
+        const convId = res.headers.get("X-Conversation-Id");
+        if (convId && !conversationIdRef.current) {
+          conversationIdRef.current = convId;
+          setConversationId(convId);
         }
 
         const reader = res.body?.getReader();
@@ -134,5 +160,5 @@ export function useChat(api: string) {
     setIsLoading(false);
   }, []);
 
-  return { messages, input, setInput, handleSubmit, isLoading, stop };
+  return { messages, input, setInput, handleSubmit, isLoading, stop, conversationId, loadConversation };
 }

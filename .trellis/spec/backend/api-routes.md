@@ -9,11 +9,19 @@
 ```
 app/api/
 ├── chat/
-│   └── route.ts      ← POST /api/chat (AI conversation)
+│   └── route.ts              ← POST /api/chat (AI conversation)
+├── conversations/
+│   ├── route.ts              ← GET /api/conversations (list)
+│   └── [id]/
+│       └── route.ts          ← GET /api/conversations/[id] (messages)
 ├── auth/
-│   └── route.ts      ← GET /api/auth (Feishu OAuth callback)
-└── upload/
-    └── route.ts      ← POST /api/upload (Phase 2, docs)
+│   └── route.ts              ← GET /api/auth (Feishu OAuth callback)
+├── upload/
+│   └── route.ts              ← POST /api/upload
+├── classify/
+│   └── route.ts              ← POST /api/classify
+└── index/
+    └── route.ts              ← POST /api/index
 ```
 
 ## Handler Pattern
@@ -50,5 +58,10 @@ export async function POST(req: NextRequest) {
 | Method | Path | Purpose | Auth |
 |--------|------|---------|------|
 | POST | `/api/chat` | Send message, stream AI response | Session cookie |
+| GET | `/api/conversations` | List user's conversations | Session cookie |
+| POST | `/api/conversations` | Create new conversation | Session cookie |
+| GET | `/api/conversations/[id]` | Get conversation messages | Session cookie |
 | GET | `/api/auth` | Feishu OAuth callback | Public |
-| POST | `/api/upload` | Upload document (Phase 2) | Session cookie |
+| POST | `/api/upload` | Upload documents | Session cookie |
+| POST | `/api/classify` | Classify uploaded files | Session cookie |
+| POST | `/api/index` | Move + index to pgvector | Session cookie |
