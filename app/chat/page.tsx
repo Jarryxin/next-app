@@ -1,6 +1,6 @@
 "use client";
 
-import { useWSChat } from "@/lib/use-ws-chat";
+import { useChat } from "@/lib/use-chat";
 import { useEffect, useRef, useState, memo, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -137,8 +137,8 @@ const MessageBubble = memo(function MessageBubble({
 });
 
 export default function ChatPage() {
-  const { messages, input, setInput, handleSubmit, isLoading, stop, conversationId, loadConversation, connectionStatus, connect, disconnect } =
-    useWSChat();
+  const { messages, input, setInput, handleSubmit, isLoading, stop, conversationId, loadConversation } =
+    useChat("/api/chat");
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -152,17 +152,6 @@ export default function ChatPage() {
       }
     } catch {}
   }, []);
-
-  useEffect(() => {
-    connect();
-    return () => disconnect();
-  }, [connect, disconnect]);
-
-  useEffect(() => {
-    if (connectionStatus === "connected") {
-      fetchConversations();
-    }
-  }, [connectionStatus, fetchConversations]);
 
   useEffect(() => {
     if (conversationId) {
@@ -239,30 +228,6 @@ export default function ChatPage() {
       <div className="flex flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
           <h1 className="text-lg font-semibold">AI Chat</h1>
-          <span
-            className={`inline-flex items-center gap-1 text-xs ${
-              connectionStatus === "connected"
-                ? "text-green-500"
-                : connectionStatus === "reconnecting"
-                ? "text-yellow-500"
-                : "text-red-500"
-            }`}
-          >
-            <span
-              className={`inline-block h-2 w-2 rounded-full ${
-                connectionStatus === "connected"
-                  ? "bg-green-500"
-                  : connectionStatus === "reconnecting"
-                  ? "bg-yellow-500"
-                  : "bg-red-500"
-              }`}
-            />
-            {connectionStatus === "connected"
-              ? "已连接"
-              : connectionStatus === "reconnecting"
-              ? "重连中"
-              : "未连接"}
-          </span>
         </header>
 
         <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-4">
