@@ -145,24 +145,32 @@ export default function ChatPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const userScrolledUp = useRef(false);
 
-  const fetchConversations = useCallback(async () => {
-    try {
-      const res = await fetch("/api/conversations");
-      if (res.ok) {
-        setConversations(await res.json());
-      }
-    } catch {}
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/conversations");
+        if (res.ok && !cancelled) {
+          setConversations(await res.json());
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
-    fetchConversations();
-  }, [fetchConversations]);
-
-  useEffect(() => {
-    if (conversationId) {
-      fetchConversations();
-    }
-  }, [conversationId, fetchConversations]);
+    if (!conversationId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/conversations");
+        if (res.ok && !cancelled) {
+          setConversations(await res.json());
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [conversationId]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -196,6 +204,19 @@ export default function ChatPage() {
     loadConversation("");
   }, [loadConversation]);
 
+  const handleDeleteConversation = useCallback(async (e: React.MouseEvent, convId: string) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch(`/api/conversations/${convId}`, { method: "DELETE" });
+      if (res.ok) {
+        setConversations((prev) => prev.filter((c) => c.id !== convId));
+        if (conversationId === convId) {
+          loadConversation("");
+        }
+      }
+    } catch {}
+  }, [conversationId, loadConversation]);
+
   return (
     <div className="flex h-screen flex-col bg-zinc-50 dark:bg-black">
       <NavBar />
@@ -211,20 +232,30 @@ export default function ChatPage() {
         </div>
         <div className="flex-1 overflow-y-scroll p-2">
           {conversations.map((conv) => (
-            <button
-              key={conv.id}
-              onClick={() => handleConversationClick(conv.id)}
-              className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
-                conv.id === conversationId
-                  ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200"
-                  : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              }`}
-            >
-              <div className="truncate font-medium">{conv.title}</div>
-              <div className="text-xs text-zinc-400">
-                {conv._count.messages} 条消息
-              </div>
-            </button>
+            <div key={conv.id} className="group relative">
+              <button
+                onClick={() => handleConversationClick(conv.id)}
+                className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
+                  conv.id === conversationId
+                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200"
+                    : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                }`}
+              >
+                <div className="truncate font-medium">{conv.title}</div>
+                <div className="text-xs text-zinc-400">
+                  {conv._count.messages} 条消息
+                </div>
+              </button>
+              <button
+                onClick={(e) => handleDeleteConversation(e, conv.id)}
+                className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1 text-zinc-400 opacity-0 transition hover:bg-red-100 hover:text-red-500 group-hover:opacity-100 dark:hover:bg-red-900/30"
+                title="删除对话"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
           ))}
           {conversations.length === 0 && (
             <p className="p-3 text-center text-xs text-zinc-400">暂无对话</p>

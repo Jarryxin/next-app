@@ -2,7 +2,15 @@
 
 AI 对话 + RAG 知识库 + 飞书 OAuth 认证。
 
-![首页截图](/homepage.png)
+## 页面截图
+
+| 页面 | 截图 |
+|------|------|
+| **首页** — 功能卡片导航 | ![首页](public/screenshots/homepage.png) |
+| **AI 对话** — 流式 SSE，会话管理，Markdown 渲染 | ![对话](public/screenshots/chat.png) |
+| **文档上传分类** — 拖拽上传 → LLM 分类 → 编辑 → RAG 索引 | ![上传](public/screenshots/upload.png) |
+| **知识库管理** — 文件列表 + 删除（级联清理 DB+磁盘） | ![管理](public/screenshots/manage.png) |
+| **飞书 OAuth 登录** — 扫码/授权登录 | ![登录](public/screenshots/auth.png) |
 
 ## 技术栈
 

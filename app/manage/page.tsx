@@ -38,7 +38,9 @@ export default function ManagePage() {
   }, []);
 
   useEffect(() => {
-    fetchDocs();
+    (async () => {
+      await fetchDocs();
+    })();
   }, [fetchDocs]);
 
   const handleDelete = useCallback(async (path: string) => {

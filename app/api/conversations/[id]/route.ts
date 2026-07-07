@@ -35,3 +35,27 @@ export async function GET(
 
   return NextResponse.json({ conversation, messages });
 }
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getSessionFromCookie();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+
+  const conversation = await prisma.conversation.findFirst({
+    where: { id, userId: session.userId },
+  });
+
+  if (!conversation) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  await prisma.conversation.delete({ where: { id } });
+
+  return NextResponse.json({ success: true });
+}
