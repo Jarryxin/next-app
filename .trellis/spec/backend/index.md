@@ -14,6 +14,27 @@
 | Auth | Feishu OAuth (Phase 1: scan-to-login) |
 | AI Layer | See `.trellis/spec/ai/` |
 
+## API Routes
+
+| 端点 | 方法 | 功能 | Auth |
+|------|------|------|------|
+| `/api/conversations` | GET | 列出当前用户会话 | ✅ |
+| `/api/conversations` | POST | 创建新会话 | ✅ |
+| `/api/conversations/[id]` | GET | 获取会话详情+消息 | ✅ |
+| `/api/conversations/[id]` | DELETE | 删除会话（Cascade 清理消息） | ✅ |
+| `/api/chat` | POST | 对话流式 SSE | ✅ |
+| `/api/upload` | POST | 接收文件保存到 `knowledge/upload/` | ✅ |
+| `/api/classify` | POST | LLM 转录图片+分类文档 | ✅ |
+| `/api/index` | POST | 移动文件 + pgvector 索引 | ✅ |
+| `/api/knowledge` | GET | 列出知识库文档 | ✅ |
+| `/api/knowledge` | DELETE | 删除文档（级联清理 DB+磁盘） | ✅ |
+| `/api/auth/feishu` | GET | 飞书 OAuth 授权 URL | ❌ |
+| `/api/auth/feishu/callback` | GET | OAuth 回调 | ❌ |
+| `/api/auth/feishu/status` | GET | 扫码轮询 | ❌ |
+| `/api/auth/me` | GET | 当前用户信息 | ❌（返回 `{user: null}` 如果未登录） |
+
+所有 API 路由通过 `getSessionFromCookie()` 检查认证，返回 401 `{ error: "Unauthorized" }`。
+
 ## Pre-Development Checklist
 
 - [ ] Prisma schema update needs migration (`npm run db:migrate`)
