@@ -1,38 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI 智能助手
 
-![alt text](image.png)
+AI 对话 + RAG 知识库 + 飞书 OAuth 认证。
 
-## Getting Started
+![首页截图](/homepage.png)
 
-First, run the development server:
+## 技术栈
+
+| 层 | 技术 |
+|---|---|
+| **框架** | Next.js 16 (App Router) |
+| **语言** | TypeScript |
+| **样式** | Tailwind CSS 4 |
+| **状态管理** | Zustand |
+| **数据库** | PostgreSQL + Prisma 7 + pgvector |
+| **LLM** | Agnes AI (OpenAI 兼容) / DeepSeek |
+| **编排** | LangChain + LangGraph Agent |
+| **Embedding** | Ollama (bge-m3, 1024d) |
+| **流式** | 自定义 SSE Hook (RAF 节流) |
+| **认证** | 飞书 OAuth v2.0 |
+| **测试** | Vitest + Playwright |
+
+## 已实现能力
+
+- **AI 对话** — 流式 SSE 输出，保留上下文，支持 Markdown 渲染
+- **知识库 RAG** — 文档自动分块 → Embedding → pgvector 检索增强生成
+- **文档上传** — 拖拽上传 .md / .jpg / .png，LLM 自动分类，一键索引
+- **手写笔记转录** — Agnes AI 视觉 API 将图片笔记转为 Markdown
+- **笔记自动分类** — AI 识别内容类别，自动归档到子目录
+- **文件管理** — 知识库文件列表查看 + 删除（级联清理向量和磁盘文件）
+- **飞书 OAuth 登录** — 扫码/授权登录，Session 会话管理
+- **对话历史** — 会话持久化，长上下文管理
+- **上传→分类→RAG 工作流** — 从上传到索引的完整闭环
+
+## 快速开始
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+访问 [http://localhost:3000](http://localhost:3000)。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> 需要 PostgreSQL + pgvector + Ollama (bge-m3) 环境，配置 `.env` 环境变量。
