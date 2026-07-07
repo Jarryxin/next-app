@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import NavBar from "@/app/components/NavBar";
 
 interface UploadFile {
   id: string;
@@ -45,6 +46,12 @@ export default function UploadPage() {
     setError(null);
   }, []);
 
+  function fetchWithTimeout(url: string, opts: RequestInit, ms = 60000) {
+    const ctrl = new AbortController();
+    const id = setTimeout(() => ctrl.abort(), ms);
+    return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(id));
+  }
+
   const handleUpload = useCallback(async () => {
     const toUpload = files.filter((f) => f.status === "pending");
     if (toUpload.length === 0) return;
@@ -59,9 +66,9 @@ export default function UploadPage() {
     }
 
     try {
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const res = await fetchWithTimeout("/api/upload", { method: "POST", body: formData });
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({ error: res.statusText }));
         throw new Error(err.error || "Upload failed");
       }
       const data = (await res.json()) as { files: { id: string; name: string }[] };
@@ -76,7 +83,11 @@ export default function UploadPage() {
       );
       setStep("classify");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setError("请求超时，请检查服务器是否正常运行");
+      } else {
+        setError(err instanceof Error ? err.message : "Upload failed");
+      }
     } finally {
       setBusy(false);
     }
@@ -90,13 +101,13 @@ export default function UploadPage() {
     setError(null);
 
     try {
-      const res = await fetch("/api/classify", {
+      const res = await fetchWithTimeout("/api/classify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ files: toClassify.map((f) => ({ id: f.id, name: f.name })) }),
       });
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({ error: res.statusText }));
         throw new Error(err.error || "Classify failed");
       }
       const data = (await res.json()) as { results: { id: string; name: string; category: string; error?: string }[] };
@@ -111,7 +122,11 @@ export default function UploadPage() {
       );
       setStep("review");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Classify failed");
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setError("分类请求超时，请检查 LLM API 是否正常运行");
+      } else {
+        setError(err instanceof Error ? err.message : "Classify failed");
+      }
     } finally {
       setBusy(false);
     }
@@ -129,13 +144,13 @@ export default function UploadPage() {
     setStep("index");
 
     try {
-      const res = await fetch("/api/index", {
+      const res = await fetchWithTimeout("/api/index", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ files: toIndex.map((f) => ({ name: f.mdName, category: f.category })) }),
       });
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({ error: res.statusText }));
         throw new Error(err.error || "Index failed");
       }
       const data = (await res.json()) as { results: { name: string; success: boolean; error?: string }[] };
@@ -150,7 +165,11 @@ export default function UploadPage() {
       );
       setStep("done");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Index failed");
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setError("索引请求超时，请检查服务器");
+      } else {
+        setError(err instanceof Error ? err.message : "Index failed");
+      }
       setStep("review");
     } finally {
       setBusy(false);
@@ -183,12 +202,11 @@ export default function UploadPage() {
   const stepIndex = STEP_ORDER.indexOf(step === "index" ? "review" : step);
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-3xl flex-col bg-zinc-50 p-6 dark:bg-black">
+    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-black">
+      <NavBar />
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col p-6">
       <header className="mb-6 flex items-center justify-between">
         <h1 className="text-lg font-semibold">上传文档到知识库</h1>
-        <a href="/chat" className="text-sm text-blue-500 underline">
-          去对话 →
-        </a>
       </header>
 
       {error && (
@@ -315,6 +333,7 @@ export default function UploadPage() {
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 }

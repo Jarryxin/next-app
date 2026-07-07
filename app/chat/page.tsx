@@ -2,6 +2,7 @@
 
 import { useChat } from "@/lib/use-chat";
 import { useEffect, useRef, useState, memo, useCallback } from "react";
+import NavBar from "@/app/components/NavBar";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -154,6 +155,10 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
+    fetchConversations();
+  }, [fetchConversations]);
+
+  useEffect(() => {
     if (conversationId) {
       fetchConversations();
     }
@@ -192,7 +197,9 @@ export default function ChatPage() {
   }, [loadConversation]);
 
   return (
-    <div className="mx-auto flex h-screen max-w-5xl bg-zinc-50 dark:bg-black">
+    <div className="flex h-screen flex-col bg-zinc-50 dark:bg-black">
+      <NavBar />
+      <div className="mx-auto flex flex-1 w-full max-w-5xl overflow-hidden">
       <aside className="flex w-64 flex-col border-r border-zinc-200 dark:border-zinc-800">
         <div className="border-b border-zinc-200 p-3 dark:border-zinc-800">
           <button
@@ -202,7 +209,7 @@ export default function ChatPage() {
             + 新对话
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="flex-1 overflow-y-scroll p-2">
           {conversations.map((conv) => (
             <button
               key={conv.id}
@@ -230,7 +237,7 @@ export default function ChatPage() {
           <h1 className="text-lg font-semibold">AI Chat</h1>
         </header>
 
-        <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-4">
+        <div ref={containerRef} className="flex-1 overflow-y-scroll px-4 py-4">
           {messages.length === 0 && (
             <div className="flex h-full items-center justify-center text-zinc-400">
               选择或创建一个对话
@@ -277,6 +284,7 @@ export default function ChatPage() {
           )}
         </form>
       </div>
+    </div>
     </div>
   );
 }

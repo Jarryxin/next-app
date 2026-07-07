@@ -7,4 +7,6 @@ export const llm = new ChatOpenAI({
   },
   apiKey: process.env.AGNES_API_KEY,
   streaming: true,
+  timeout: 60000,
+  maxRetries: 0,
 });

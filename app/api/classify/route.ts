@@ -12,6 +12,8 @@ const llm = new ChatOpenAI({
   },
   apiKey: process.env.AGNES_API_KEY,
   temperature: 0.1,
+  timeout: 60000,
+  maxRetries: 0,
 });
 
 const UPLOAD_DIR = join(process.cwd(), "knowledge", "upload");
@@ -131,13 +133,14 @@ export async function POST(req: NextRequest) {
     try {
       let text = "";
       let fileTitle = "";
+      let safeTitle = "";
 
       if (isImage) {
         const result = await transcribeWithTitle(filePath);
         fileTitle = sanitizeFilename(result.title) || basename(matched, ext);
         text = result.content;
 
-        const safeTitle = sanitizeFilename(fileTitle);
+        safeTitle = sanitizeFilename(fileTitle);
         const newImageName = `${safeTitle}${ext}`;
         const newImagePath = join(UPLOAD_DIR, newImageName);
         safeRename(filePath, newImagePath);
@@ -154,9 +157,9 @@ ${text}
       } else {
         text = readFileSync(filePath, "utf-8");
         const fmTitle = extractFrontmatterTitle(text);
-        fileTitle = fmTitle || originalName || basename(matched, ".md");
+        fileTitle = fmTitle || (originalName ? basename(originalName, ".md") : basename(matched, ".md"));
 
-        const safeTitle = sanitizeFilename(fileTitle);
+        safeTitle = sanitizeFilename(fileTitle);
         const newMdName = `${safeTitle}.md`;
         const newMdPath = join(UPLOAD_DIR, newMdName);
         if (matched !== newMdName) {
@@ -170,7 +173,7 @@ ${text}
       }
 
       const category = await classifyContent(text, fileTitle);
-      results.push({ id, name: `${sanitizeFilename(fileTitle)}.md`, title: sanitizeFilename(fileTitle), category });
+      results.push({ id, name: `${safeTitle}.md`, title: safeTitle, category });
     } catch (err) {
       results.push({ id, name: matched, category: "其他", error: String(err) });
     }

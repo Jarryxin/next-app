@@ -2,10 +2,6 @@ import { cookies } from "next/headers";
 import crypto from "crypto";
 import { prisma } from "./db";
 
-export async function createUser(name: string) {
-  return prisma.user.create({ data: { name } });
-}
-
 export async function createSession(userId: string) {
   const token = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
