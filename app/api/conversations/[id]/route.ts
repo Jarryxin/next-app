@@ -29,6 +29,7 @@ export async function GET(
       role: true,
       content: true,
       sources: true,
+      model: true,
       createdAt: true,
     },
   });

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { SystemMessage, HumanMessage, AIMessage, type BaseMessage } from "@langchain/core/messages";
-import { llm } from "@/lib/llm";
+import { getLLM, llm } from "@/lib/llm";
 import { searchSimilar } from "@/lib/rag";
 import { getSessionFromCookie } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -44,10 +44,12 @@ export async function POST(req: NextRequest) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const { messages, conversationId: rawConversationId } = await req.json();
+  const { messages, conversationId: rawConversationId, model } = await req.json();
   if (!messages || !Array.isArray(messages)) {
     return new Response("Invalid messages", { status: 400 });
   }
+
+  const llm = getLLM(model);
 
   let conversationId = rawConversationId;
 
@@ -156,7 +158,7 @@ export async function POST(req: NextRequest) {
   const readableStream = new ReadableStream({
     async start(controller) {
       controller.enqueue(
-        encoder.encode(`data: ${JSON.stringify({ type: "sources", sources })}\n\n`)
+        encoder.encode(`data: ${JSON.stringify({ type: "meta", model: model || "agnes", sources })}\n\n`)
       );
       for await (const chunk of stream) {
         const content = chunk.content;
@@ -176,6 +178,7 @@ export async function POST(req: NextRequest) {
             role: "assistant",
             content: fullContent,
             sources,
+            model: model || "agnes",
           },
         });
       } catch (e) {

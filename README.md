@@ -20,8 +20,8 @@ AI 对话 + RAG 知识库 + 飞书 OAuth 认证。
 | **语言** | TypeScript |
 | **样式** | Tailwind CSS 4 |
 | **状态管理** | Zustand |
-| **数据库** | PostgreSQL + Prisma 7 + pgvector |
-| **LLM** | Agnes AI (OpenAI 兼容) / DeepSeek |
+| **数据库** | PostgreSQL + Prisma 7 + pgvector, Redis |
+| **LLM** | Agnes AI / 百炼 DashScope（双 Provider 自动降级） |
 | **编排** | LangChain + LangGraph Agent |
 | **Embedding** | Ollama (bge-m3, 1024d) |
 | **流式** | 自定义 SSE Hook (RAF 节流) |
@@ -30,15 +30,18 @@ AI 对话 + RAG 知识库 + 飞书 OAuth 认证。
 
 ## 已实现能力
 
-- **AI 对话** — 流式 SSE 输出，保留上下文，支持 Markdown 渲染
+- **AI 对话** — 流式 SSE 输出，保留上下文，支持 Markdown 渲染，多行输入
+- **模型切换** — 对话页顶部下拉选择 Agnes AI / 百炼 DashScope
+- **LLM 自动降级** — 主 Provider 不可用时自动 fallback 到备用，前端无感知
+- **SSE 中断恢复** — 网络断开后保留已收到的内容，支持一键重试
+- **对话历史** — 会话持久化、长上下文管理（自动摘要压缩）、删除会话
 - **知识库 RAG** — 文档自动分块 → Embedding → pgvector 检索增强生成
 - **文档上传** — 拖拽上传 .md / .jpg / .png，LLM 自动分类，一键索引
-- **手写笔记转录** — Agnes AI 视觉 API 将图片笔记转为 Markdown
+- **手写笔记转录** — AI 视觉 API 将图片笔记转为 Markdown
 - **笔记自动分类** — AI 识别内容类别，自动归档到子目录
 - **文件管理** — 知识库文件列表查看 + 删除（级联清理向量和磁盘文件）
 - **飞书 OAuth 登录** — 扫码/授权登录，Session 会话管理
-- **对话历史** — 会话持久化，长上下文管理
-- **上传→分类→RAG 工作流** — 从上传到索引的完整闭环
+- **WebSocket 示例** — `/ws-demo` 学习页面，含单播/组播/广播模式 + Redis Pub/Sub 多实例演示
 
 ## 快速开始
 

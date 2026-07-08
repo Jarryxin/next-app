@@ -20,6 +20,11 @@ interface ConversationSummary {
   _count: { messages: number };
 }
 
+const modelLabels: Record<string, string> = {
+  agnes: "Agnes AI",
+  dashscope: "百炼 DashScope",
+};
+
 const MarkdownContent = memo(function MarkdownContent({ content }: { content: string }) {
   return (
     <ReactMarkdown
@@ -104,7 +109,7 @@ const MessageBubble = memo(function MessageBubble({
   msg,
   showCursor,
 }: {
-  msg: { role: string; content: string; sources?: SourceResult[] };
+  msg: { role: string; content: string; sources?: SourceResult[]; model?: string };
   showCursor: boolean;
 }) {
   return (
@@ -120,6 +125,11 @@ const MessageBubble = memo(function MessageBubble({
       >
         {msg.role === "assistant" ? (
           <>
+            {msg.model && (
+              <div className="mb-1 text-[10px] font-medium text-zinc-400 uppercase tracking-wide">
+                {modelLabels[msg.model] || msg.model}
+              </div>
+            )}
             {msg.content ? (
               <MarkdownContent content={msg.content} />
             ) : showCursor ? (
@@ -138,7 +148,7 @@ const MessageBubble = memo(function MessageBubble({
 });
 
 export default function ChatPage() {
-  const { messages, input, setInput, handleSubmit, isLoading, stop, conversationId, loadConversation } =
+  const { messages, input, setInput, handleSubmit, isLoading, stop, conversationId, loadConversation, streamError, retry, selectedModel, setSelectedModel } =
     useChat("/api/chat");
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -266,6 +276,15 @@ export default function ChatPage() {
       <div className="flex flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
           <h1 className="text-lg font-semibold">AI Chat</h1>
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            disabled={isLoading}
+            className="rounded border border-zinc-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800"
+          >
+            <option value="agnes">Agnes AI</option>
+            <option value="dashscope">百炼 DashScope</option>
+          </select>
         </header>
 
         <div ref={containerRef} className="flex-1 overflow-y-scroll px-4 py-4">
@@ -284,17 +303,37 @@ export default function ChatPage() {
           <div ref={bottomRef} />
         </div>
 
+        {streamError && (
+          <div className="flex items-center justify-between border-t border-zinc-200 bg-orange-50 px-4 py-2 dark:border-zinc-800 dark:bg-orange-900/20">
+            <span className="text-sm text-orange-700 dark:text-orange-300">
+              连接中断，已收到部分内容
+            </span>
+            <button
+              onClick={retry}
+              disabled={isLoading}
+              className="rounded-lg bg-orange-500 px-3 py-1 text-sm text-white hover:bg-orange-600 disabled:opacity-50"
+            >
+              重试
+            </button>
+          </div>
+        )}
         <form
           onSubmit={handleSubmit}
           className="flex items-center gap-2 border-t border-zinc-200 px-4 py-3 dark:border-zinc-800"
         >
-          <input
-            type="text"
+          <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="输入消息..."
+            placeholder="输入消息... (Shift+Enter 换行, Enter 发送)"
             disabled={isLoading}
-            className="flex-1 rounded-lg border border-zinc-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800"
+            className="flex-1 resize-none rounded-lg border border-zinc-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800"
+            rows={3}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
           />
           {isLoading ? (
             <button

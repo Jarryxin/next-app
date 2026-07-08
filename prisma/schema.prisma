@@ -81,6 +81,7 @@ model Message {
   role           String
   content        String
   sources        Json?    @default("[]")
+  model          String?
   createdAt      DateTime @default(now()) @map("created_at")
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
