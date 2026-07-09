@@ -113,7 +113,7 @@ export async function indexKnowledgeDir(): Promise<
 export async function searchSimilar(
   query: string,
   k = 5,
-  minSimilarity = 0.45
+  minSimilarity = 0.65
 ): Promise<SearchResult[]> {
   const [queryVector] = await embeddings.embedDocuments([query]);
   const vectorStr = `[${queryVector.join(",")}]`;

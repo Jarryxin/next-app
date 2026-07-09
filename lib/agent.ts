@@ -1,6 +1,6 @@
 import { StateGraph, MessagesAnnotation } from "@langchain/langgraph";
 import { SystemMessage } from "@langchain/core/messages";
-import { llm } from "./llm";
+import { getLLM, llm } from "./llm";
 import { searchSimilar } from "./rag";
 
 async function retrieve(state: typeof MessagesAnnotation.State) {
@@ -31,7 +31,9 @@ async function retrieve(state: typeof MessagesAnnotation.State) {
 }
 
 async function callModel(state: typeof MessagesAnnotation.State) {
-  const response = await llm.invoke(state.messages);
+  const modelId = (state as unknown as { model?: string }).model;
+  const activeLLM = modelId ? getLLM(modelId) : llm;
+  const response = await activeLLM.invoke(state.messages);
   return { messages: [response] };
 }
 

@@ -148,6 +148,12 @@ export async function POST(req: NextRequest) {
           `以下是与用户问题相关的知识库内容。请基于这些内容回答用户问题。如果这些内容不足以回答问题，请如实告知。\n\n${context}`
         )
       );
+    } else {
+      langchainMessages.unshift(
+        new SystemMessage(
+          "知识库中未找到与用户问题直接相关的信息。请先如实告知用户知识库中没有相关信息，然后根据自己的知识回答用户问题。"
+        )
+      );
     }
   }
 
